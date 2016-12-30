@@ -1,20 +1,8 @@
-#
-
-library(shiny)
-
-fluidPage(
-  titlePanel("Uploaden"),
-  sidebarLayout(
-    sidebarPanel(
-      fileInput("uploadFile", "SC file"
-      ),
-      fileInput("uploadFile2", "VX file")
-    ),
-    mainPanel(
-      tabsetPanel(
-      tabPanel("SC",tableOutput('contents')),
-      tabPanel("VX",tableOutput('contents2'))
-    )
-    )
-  )
-)
+shinyUI(pageWithSidebar(
+  headerPanel("R data inlezen"),
+  
+  sidebarPanel(fileInput("uploadFile", "SC"),
+               downloadButton('downloadData', "Download")),
+  
+  mainPanel(tableOutput('contents'))
+))
