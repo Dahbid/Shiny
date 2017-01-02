@@ -5,25 +5,32 @@ shinyUI(
   tabPanel("Urendashboard updater", 
    # shinythemes::themeSelector(), 
     headerPanel("Urendashboard updater"),
-    sidebarPanel(fileInput("uploadFile", "Open het SC urenbestand"), 
-                 fileInput("uploadFile2", "Open het VX urenbestand"),
-    downloadButton('downloadData', "Download")
+    sidebarLayout(position = "left",
+      sidebarPanel(fileInput("uploadFile", "Open het SC urenbestand"), 
+                   fileInput("uploadFile2", "Open het VX urenbestand")),
+      mainPanel(tableOutput('contents3'))
     )
-    
-    ),
+  ),
   
-  tabPanel("test1",
-    headerPanel("Poep"),
-
-    mainPanel(tableOutput('contents2'))),
+  tabPanel("Zenith updater",
+    headerPanel("Zenith updater"),
+    sidebarLayout(position = "left",
+      sidebarPanel(fileInput("uploadFile5", "Open het ZO urenbestand")),
+      mainPanel(tableOutput('contents6'))
+    )
+  ),
   
-  tabPanel("test2",
-    headerPanel("Huh"),
-    sidebarPanel(),
-    mainPanel(tableOutput('contents3'))),
   
   tabPanel("Smartcontent updater",
     headerPanel("Smartcontent updater"),
-    sidebarPanel(),
-    mainPanel(tableOutput('iris')))
+    sidebarLayout(position = "left",
+      sidebarPanel(fileInput("uploadFile3", "Ruw"),
+                   fileInput("uploadFile4", "Ruw met doelgroep")),
+      mainPanel(tableOutput('contents5'))
+    )
+  )
+  
   ))
+
+ 
+ 
