@@ -156,7 +156,7 @@ shinyServer(function(input, output, session) {
     output_list <- list("Uren Zenith" = output, "P-Talent" = bron_ptalentcodes, "L-Codes" = bron_lcodes)
     
     Sys.setenv(R_ZIPCMD= "S:\\Insights\\5 - Business & Data Solutions\\14. R\\Shiny\\zip.exe")
-    openxlsx::write.xlsx(output_list, "C:\\Users\\davgies\\Documents\\R\\Projecten\\Urendashboard\\Urendashboard Zenith Werkversie.xlsx")
+    openxlsx::write.xlsx(output_list, "S:\\Insights\\5 - Business & Data Solutions\\14. R\\Shiny\\Urendashboard Zenith Werkversie.xlsx")
     
     return("Klaar")
   })
@@ -181,7 +181,7 @@ shinyServer(function(input, output, session) {
     smart1 <- dplyr::select(smart1, -1, -2, -5)
     
     # na Campaign drie kolommen toevoegen: Platform, Ad type en Brand
-    smart1$Platform <- ""
+    smart1$Platform <- input$text
     smart1$`Ad type` <- ""
     smart1$Brand <- ""
     smart1 <- smart1[, c(1, 43:45, 2:42)]
@@ -194,7 +194,7 @@ shinyServer(function(input, output, session) {
     # brandnaam toevoegen aan Brand
     # brandnaam <- sub(" -.*", "", gsub(pattern = "Januari|Februari|Maart|April|Mei|Juni|Juli|Augustus|September|Oktober|November|December", 
     #                                   x = basename(vec_ruw), "-", ignore.case = T))
-    smart1$Brand <- "brandnaam"
+    smart1$Brand <- "brand"
     
     # extra dashboard variabelen berekenen en variabelennamen aanpassen aan dashboard document
     smart1 <- dplyr::mutate(smart1, 
@@ -228,7 +228,7 @@ shinyServer(function(input, output, session) {
     smart2 <- readxl::read_excel(path = paste(inFile4$datapath, ".xlsx", sep=""), sheet = 1)    
     # smart2$Starts <- as.Date(smart2$Starts)
     smart2 <- dplyr::select(smart2, -1, -2, -dplyr::ends_with("indicator"))
-    smart2$Platform <- ""
+    smart2$Platform <- input$text
     smart2$`Ad type` <- ""
     smart2$Brand <- ""
     smart2 <- smart2[, c(1, 45:47, 2:44)]
@@ -238,7 +238,7 @@ shinyServer(function(input, output, session) {
     smart2 <- tidyr::unite(smart2, Campaign, 1:3, sep = "-")
     # brandnaam2 <- sub(" -.*", "", gsub(pattern = "Januari|Februari|Maart|April|Mei|Juni|Juli|Augustus|September|Oktober|November|December", 
     #                                    x = basename(vec_ruw_doel), "-", ignore.case = T))
-    smart2$Brand <- "brandnaam2"
+    smart2$Brand <- "brand"
     
     smart2 <- dplyr::mutate(smart2,
                             `Conversation Rate` = `Post comments`/Reach,
