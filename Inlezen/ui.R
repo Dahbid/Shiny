@@ -21,16 +21,14 @@ shinyUI(
   ),
   
   
-  tabPanel("Smartcontent updater",
-    headerPanel("Smartcontent updater"),
+  tabPanel("SmartContent updater",
+    headerPanel("SmartContent updater"),
     sidebarLayout(position = "left",
       sidebarPanel(fileInput("uploadFile3", "Ruw"),
-                   fileInput("uploadFile4", "Ruw met doelgroep")),
+                   fileInput("uploadFile4", "Ruw met doelgroep"),
+                   textInput("text", "Voer het platform waar de data vandaan komt in", "Facebook")),
       mainPanel(tableOutput('contents5'))
     )
   )
   
   ))
-
- 
- 
