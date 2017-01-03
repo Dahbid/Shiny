@@ -3,148 +3,110 @@ shinyServer(function(input, output, session) {
   options(shiny.maxRequestSize=50*1024^2)
   
   ########################################### Urenupdater ########################################################
-  # inlezen en bewerken van het SC bestand
-  datasetInput <- reactive({
-    inFile <- input$uploadFile
-    
-    if (is.null(inFile))
-      return(NULL)
-    
-    file.rename(inFile$datapath,
-                paste(inFile$datapath, ".xlsx", sep=""))
-    
-    vec_types <- c("text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text",
-                   "numeric", "numeric", "numeric", "numeric", "text", "numeric", "text", "text", "text",
-                   "text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text",
-                   "text", "text", "text", "text", "text", "text", "text")
-    SC <- readxl::read_excel(path = paste(inFile$datapath, ".xlsx", sep=""), sheet = 1, col_types = vec_types)
-    
-    #okay <- choose.files(caption = "Open de meest recente SC uren", default = "S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Data\\SC")
-    SC$PTalent_ID[SC$PTalent_ID=="94385"] <- "101710"  # Esther Buis heeft twee nummers
-    SC$PTalent_ID <- as.numeric(SC$PTalent_ID)
-    SC$CO_Document_Number <- as.numeric(SC$CO_Document_Number)
-    SC$Hour_Status_code <- as.numeric(SC$Hour_Status_code)
-    
-    # overige data inlezen
-    bron_lcodes <- readxl::read_excel("S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Bronbestand Urendashboard werkversie.xlsx", sheet = 3)
-    bron_ptalentcodes <- readxl::read_excel("S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Bronbestand Urendashboard werkversie.xlsx", sheet = 4)
-    
-    # SC voorbereiden
-    output <- dplyr::select(SC, 1:9)
-    output <- dplyr::left_join(output, bron_ptalentcodes, by = c("PTalent_ID" = "P-Talent Code"))
-    
-    output$Work_Code <- SC$Work_Code
-    output <- dplyr::left_join(output, bron_lcodes, by = c("Work_Code" = "Wcode Ref"))
-    output <- cbind(output, SC[,11:28])
-    
-    return(output)
-  })
-  # renderen van SC data in het eerste tabblad
-  #  output$contents <- renderTable(datasetInput())
+  starcom <- eventReactive(input$knop_sc, {choose.files(caption = "Open de meest recente SC uren", 
+                                                        default = "S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Data\\SC")})
+  vivaki <- eventReactive(input$knop_vx, {choose.files(caption = "Open de meest recente SC uren", 
+                                                       default = "S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Data\\SC")})
   
-  # inlezen en bewerken van het VX bestand
-  datasetInput2 <- reactive({
-    inFile2 <- input$uploadFile2
-    
-    if (is.null(inFile2))
-      return(NULL)
-    
-    file.rename(inFile2$datapath,
-                paste(inFile2$datapath, ".xlsx", sep=""))
-    vec_types <- c("text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text",
-                   "numeric", "numeric", "numeric", "numeric", "text", "numeric", "text", "text", "text",
-                   "text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text",
-                   "text", "text", "text", "text", "text", "text", "text")
-    VX <- readxl::read_excel(path = paste(inFile2$datapath, ".xlsx", sep=""), sheet = 1, col_types = vec_types)
-    
-    VX$PTalent_ID <- as.numeric(VX$PTalent_ID)
-    VX$CO_Document_Number <- as.numeric(VX$CO_Document_Number)
-    VX$Hour_Status_code <- as.numeric(VX$Hour_Status_code)
-    
-    # overige data inlezen
-    bron_lcodes <- readxl::read_excel("S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Bronbestand Urendashboard werkversie.xlsx", sheet = 3)
-    bron_ptalentcodes <- readxl::read_excel("S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Bronbestand Urendashboard werkversie.xlsx", sheet = 4)
-    
-    output2 <- dplyr::select(VX, 1:9)
-    output2 <- dplyr::left_join(output2, bron_ptalentcodes, by = c("PTalent_ID" = "P-Talent Code"))
-    
-    output2$Work_Code <- VX$Work_Code
-    output2 <- dplyr::left_join(output2, bron_lcodes, by = c("Work_Code" = "Wcode Ref"))
-    output2 <- cbind(output2, VX[,11:28])
-    
-    return(output2)
-    
-  })
-  
-  
-  datasetInput3 <- reactive({
-    SC <- datasetInput()
-    VX <- datasetInput2()
-    
-    if (is.null(SC))
-      return(NULL)
-    
-    x <- system.time({
-    bron_uurtarief <- readxl::read_excel("S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Bronbestand Urendashboard werkversie.xlsx", sheet = 2)
-    bron_xtra <- readxl::read_excel("S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Bronbestand Urendashboard werkversie.xlsx", sheet = 5)
-    bron_lcodes <- readxl::read_excel("S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Bronbestand Urendashboard werkversie.xlsx", sheet = 3)
-    bron_ptalentcodes <- readxl::read_excel("S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Bronbestand Urendashboard werkversie.xlsx", sheet = 4)
-    
-    output <- rbind(SC, VX)
-    
-    # electronic arts filter toepassen
-    output <- dplyr::mutate(output, `Client Description` = replace(`Client Description`, WBS_Element_Description == "SC-EA - Electronic Arts", "Electronic Arts"),
-                            `Brand Descripton` = replace(`Brand Descripton`, WBS_Element_Description == "SC-EA - Electronic Arts", "Electronic Arts"))
-    
-    # SC- naar SC - Algemene uren 2016
-    output <- dplyr::mutate(output, WBS_Element_Description = replace(WBS_Element_Description, WBS_Element_Description == "SC-", "SC - Algemene uren 2016"))
-    
-    # nieuwe werknemers eraan plakken
-    colnames(output) <- colnames(bron_xtra)
-    output <- dplyr::bind_rows(output, bron_xtra)
-    #output[ , 23:27] <- lapply(output[,23:27], as.Date)
-    output$PTalent_ID[output$PTalent_ID==94385] <- 101710
-    
-    # overplaatsen in een list voor de export
-    output_list <- list("Starcom Uren 2016" = output, "Uurtarief " = bron_uurtarief, "L-Codes" = bron_lcodes,
-                        "P-Talentcodes" = bron_ptalentcodes, "xtra uren nieuwe WKNRS" = bron_xtra)
-    
-    Sys.setenv(R_ZIPCMD= "S:\\Insights\\5 - Business & Data Solutions\\14. R\\Shiny\\zip.exe")
-    # exporteren naar excel
-    
-    openxlsx::write.xlsx(output_list, "S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Bronbestand Urendashboard werkversie test - shiny.xlsx")
+  urendashboard <- reactive({
+      x <- system.time({
+      vec_sc <- starcom()
+      vec_vx <- vivaki()
+      
+      vec_types <- c("text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text",
+                     "numeric", "numeric", "numeric", "numeric", "text", "numeric", "text", "text", "text",
+                     "text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text",
+                     "text", "text", "text", "text", "text", "text", "text")
+      
+      # data inlezen altair
+      SC <- readxl::read_excel(path = vec_sc, col_types = vec_types)
+      VX <- readxl::read_excel(path = vec_vx, col_types = vec_types)
+      
+      SC$PTalent_ID[SC$PTalent_ID=="94385"] <- "101710"  # Esther Buis heeft twee nummers
+      SC$PTalent_ID <- as.numeric(SC$PTalent_ID)
+      VX$PTalent_ID <- as.numeric(VX$PTalent_ID)
+      SC$CO_Document_Number <- as.numeric(SC$CO_Document_Number)
+      VX$CO_Document_Number <- as.numeric(VX$CO_Document_Number)
+      SC$Hour_Status_code <- as.numeric(SC$Hour_Status_code)
+      VX$Hour_Status_code <- as.numeric(VX$Hour_Status_code)
+      
+      # overige data inlezen
+      bron_uurtarief <- readxl::read_excel("S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Bronbestand Urendashboard werkversie.xlsx", sheet = 2)
+      bron_lcodes <- readxl::read_excel("S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Bronbestand Urendashboard werkversie.xlsx", sheet = 3)
+      bron_ptalentcodes <- readxl::read_excel("S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Bronbestand Urendashboard werkversie.xlsx", sheet = 4)
+      bron_xtra <- readxl::read_excel("S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Bronbestand Urendashboard werkversie.xlsx", sheet = 5)
+      
+      # SC voorbereiden
+      output <- dplyr::select(SC, 1:9)
+      output <- dplyr::left_join(output, bron_ptalentcodes, by = c("PTalent_ID" = "P-Talent Code"))
+      
+      output$Work_Code <- SC$Work_Code
+      output <- dplyr::left_join(output, bron_lcodes, by = c("Work_Code" = "Wcode Ref"))
+      output <- cbind(output, SC[,11:28])
+      
+      # dan VX
+      output2 <- dplyr::select(VX, 1:9)
+      output2 <- dplyr::left_join(output2, bron_ptalentcodes, by = c("PTalent_ID" = "P-Talent Code"))
+      
+      output2$Work_Code <- VX$Work_Code
+      output2 <- dplyr::left_join(output2, bron_lcodes, by = c("Work_Code" = "Wcode Ref"))
+      output2 <- cbind(output2, VX[,11:28])
+      
+      # samenvoegen
+      output <- rbind(output, output2)
+      
+      # electronic arts filter toepassen
+      output <- dplyr::mutate(output, `Client Description` = replace(`Client Description`, WBS_Element_Description == "SC-EA - Electronic Arts", "Electronic Arts"),
+                              `Brand Descripton` = replace(`Brand Descripton`, WBS_Element_Description == "SC-EA - Electronic Arts", "Electronic Arts"))
+      
+      # SC- naar SC - Algemene uren 2016
+      output <- dplyr::mutate(output, WBS_Element_Description = replace(WBS_Element_Description, WBS_Element_Description == "SC-", "SC - Algemene uren 2016"))
+      
+      # nieuwe werknemers eraan plakken
+      colnames(output) <- colnames(bron_xtra)
+      output <- dplyr::bind_rows(output, bron_xtra)
+      #output[ , 23:27] <- lapply(output[,23:27], as.Date)
+      #output$Work_Date <- as.Date(as.numeric(output$Work_Date), origin="1899-12-30")
+      output$PTalent_ID[output$PTalent_ID==94385] <- 101710
+      # overplaatsen in een list voor de export
+      output_list <- list("Starcom Uren 2016" = output, "Uurtarief " = bron_uurtarief, "L-Codes" = bron_lcodes,
+                          "P-Talentcodes" = bron_ptalentcodes, "xtra uren nieuwe WKNRS" = bron_xtra)
+      
+      # exporteren naar excel
+      Sys.setenv(R_ZIPCMD= "S:\\Insights\\5 - Business & Data Solutions\\14. R\\Shiny\\zip.exe")
+      openxlsx::write.xlsx(output_list, "S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Bronbestand Urendashboard werkversie test - shiny.xlsx")
     })
-    return(paste(round(x[3],2), "seconden.")  )
+    return(paste(round(x[3],2), "seconden.") )
   })
   
-  output$contents3 <- renderTable(datasetInput3())
+  output$contents3 <- renderTable(urendashboard())
   
   ########################################### Zenith #############################################################
+  zenith <- eventReactive(input$knop_zo, {choose.files(caption = "Open de meest recente SC uren", 
+                                                        default = "S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Zenith\\Data\\ZO")})
+  
   zenith_input1 <- reactive({
-    inFile5 <- input$uploadFile5
-    
-    if (is.null(inFile5))
-      return(NULL)
-    
-    file.rename(inFile5$datapath,
-                paste(inFile5$datapath, ".xlsx", sep = ""))
+    x <- system.time({
+    vec_zo <- zenith()
     
     vec_types <- c("text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text",
                    "numeric", "numeric", "numeric", "numeric", "text", "numeric", "text", "text", "text",
                    "text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text",
                    "text", "text", "text", "text", "text", "text", "text")
-    ZO <- readxl::read_excel(path = paste(inFile5$datapath, ".xlsx", sep=""), sheet = 1, col_types = vec_types)
     
+    # data inlezen altair
+    ZO <- readxl::read_excel(path = vec_zo, col_types = vec_types)
     ZO$PTalent_ID <- as.numeric(ZO$PTalent_ID)
     ZO$CO_Document_Number <- as.numeric(ZO$CO_Document_Number)
     ZO$Hour_Status_code <- as.numeric(ZO$Hour_Status_code)
     
     # overige data inlezen
+    # bron_uurtarief <- read_excel("S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Zenith\\Urendashboard Zenith Werkversie.xlsx", sheet = 2)
     bron_lcodes <- readxl::read_excel("S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Zenith\\Urendashboard Zenith Werkversie.xlsx", sheet = 3)
     bron_ptalentcodes <- readxl::read_excel("S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Zenith\\Urendashboard Zenith Werkversie.xlsx", sheet = 2)
     bron_ptalentcodes <- dplyr::distinct(bron_ptalentcodes)
     
-    # SC voorbereiden
+    # Excel formules vervangen
     output <- dplyr::select(ZO, 1:9)
     output <- dplyr::left_join(output, bron_ptalentcodes, by = c("PTalent_ID" = "P-Talent Code"))
     
@@ -152,16 +114,19 @@ shinyServer(function(input, output, session) {
     output <- dplyr::left_join(output, bron_lcodes, by = c("Work_Code" = "Wcode Ref"))
     output <- cbind(output, ZO[,11:28])
     
+    # Posixct omzetten in date
+    #output[ , 23:27] <- lapply(output[,23:27], as.Date)
+    
     # overplaatsen in een list voor de export
     output_list <- list("Uren Zenith" = output, "P-Talent" = bron_ptalentcodes, "L-Codes" = bron_lcodes)
-    
+    # exporteren naar excel
     Sys.setenv(R_ZIPCMD= "S:\\Insights\\5 - Business & Data Solutions\\14. R\\Shiny\\zip.exe")
-    openxlsx::write.xlsx(output_list, "S:\\Insights\\5 - Business & Data Solutions\\14. R\\Shiny\\Urendashboard Zenith Werkversie.xlsx")
-    
-    return("Klaar")
+    openxlsx::write.xlsx(output_list, "S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard\\Zenith\\Urendashboard Zenith Werkversie test.xlsx")
+    })
+    return(paste(round(x[3],2), "seconden.") )
   })
- 
-   output$contents6 <- renderTable(zenith_input1())
+
+  output$contents6 <- renderTable(zenith_input1())
   
   ########################################### Smartcontent #######################################################
   smartcontent_input1 <- reactive({
@@ -174,6 +139,11 @@ shinyServer(function(input, output, session) {
                 paste(inFile3$datapath, ".xlsx", sep=""))
     #(ruw)
     smart1 <- readxl::read_excel(path = paste(inFile3$datapath, ".xlsx", sep=""), sheet = 1)
+    
+    #bestandsnaam achterhalen van het originele bestand
+    from <- input$uploadFile3[['datapath']]
+    to <- file.path(dirname(from), basename(input$uploadFile3[['name']]))
+    file.rename(from, to)
 
 #    smart1$Starts <- as.Date(smart1$Starts)
     
@@ -192,9 +162,9 @@ shinyServer(function(input, output, session) {
     smart1 <- tidyr::unite(smart1, Campaign, 1:3, sep = "-")
     
     # brandnaam toevoegen aan Brand
-    # brandnaam <- sub(" -.*", "", gsub(pattern = "Januari|Februari|Maart|April|Mei|Juni|Juli|Augustus|September|Oktober|November|December", 
-    #                                   x = basename(vec_ruw), "-", ignore.case = T))
-    smart1$Brand <- "brand"
+    brandnaam <- sub(" -.*", "", gsub(pattern = "Januari|Februari|Maart|April|Mei|Juni|Juli|Augustus|September|Oktober|November|December",
+                                      x = basename(to), "-", ignore.case = T))
+    smart1$Brand <- "brandnaam"
     
     # extra dashboard variabelen berekenen en variabelennamen aanpassen aan dashboard document
     smart1 <- dplyr::mutate(smart1, 
@@ -224,6 +194,11 @@ shinyServer(function(input, output, session) {
     file.rename(inFile4$datapath,
                  paste(inFile4$datapath, ".xlsx", sep=""))
     
+    # bestandsnaam achterhalen van het originele bestand.
+    from <- input$uploadFile4[['datapath']]
+    to <- file.path(dirname(from), basename(input$uploadFile4[['name']]))
+    file.rename(from, to)
+    
     #(ruw met doelgroep)
     smart2 <- readxl::read_excel(path = paste(inFile4$datapath, ".xlsx", sep=""), sheet = 1)    
     # smart2$Starts <- as.Date(smart2$Starts)
@@ -236,9 +211,9 @@ shinyServer(function(input, output, session) {
     smart2 <- tidyr::separate(smart2, Campaign, into = c("Campaign1", "Campaign2", "Campaign3"), sep = "-", extra = "merge")
     smart2$`Ad type` <- trimws(smart2$Campaign2)
     smart2 <- tidyr::unite(smart2, Campaign, 1:3, sep = "-")
-    # brandnaam2 <- sub(" -.*", "", gsub(pattern = "Januari|Februari|Maart|April|Mei|Juni|Juli|Augustus|September|Oktober|November|December", 
-    #                                    x = basename(vec_ruw_doel), "-", ignore.case = T))
-    smart2$Brand <- "brand"
+    brandnaam2 <- sub(" -.*", "", gsub(pattern = "Januari|Februari|Maart|April|Mei|Juni|Juli|Augustus|September|Oktober|November|December",
+                                       x = basename(to), "-", ignore.case = T))
+    smart2$Brand <- brandnaam2
     
     smart2 <- dplyr::mutate(smart2,
                             `Conversation Rate` = `Post comments`/Reach,
@@ -262,6 +237,7 @@ shinyServer(function(input, output, session) {
   output$contents4 <- renderTable(smartcontent_input1())
   output$contents5 <- renderTable(smartcontent_input2())
   
+  ########################################### DMA ################################################################
   ########################################### Sessie afsluiten ###################################################
   session$onSessionEnded(function() {
     stopApp()
