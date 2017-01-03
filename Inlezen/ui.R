@@ -3,11 +3,13 @@ library(shinythemes)
 shinyUI(
   navbarPage("Shiny test", theme = shinytheme("darkly"), 
   tabPanel("Urendashboard updater", 
-   # shinythemes::themeSelector(), 
+    #shinythemes::themeSelector(), 
     headerPanel("Urendashboard updater"),
     sidebarLayout(position = "left",
-      sidebarPanel(fileInput("uploadFile", "Open het SC urenbestand"), 
-                   fileInput("uploadFile2", "Open het VX urenbestand")),
+      sidebarPanel(strong("Open het SC urenbestand"),
+                   actionButton("knop_sc", "Browse", width = '200px'), br(), br(), br(),
+                   strong("Open het VX urenbestand"),
+                   actionButton("knop_vx", "Browse", width = '200px')),
       mainPanel(tableOutput('contents3'))
     )
   ),
@@ -15,11 +17,11 @@ shinyUI(
   tabPanel("Zenith updater",
     headerPanel("Zenith updater"),
     sidebarLayout(position = "left",
-      sidebarPanel(fileInput("uploadFile5", "Open het ZO urenbestand")),
+      sidebarPanel(strong("Open het ZO urenbestand"),
+                   actionButton("knop_zo", "Browse", width = '200px')),
       mainPanel(tableOutput('contents6'))
     )
   ),
-  
   
   tabPanel("SmartContent updater",
     headerPanel("SmartContent updater"),
