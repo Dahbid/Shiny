@@ -94,7 +94,7 @@ shinyServer(function(input, output, session) {
       # info voor op het scherm
       info <- vector()
       info <- append(info, c(paste("Duur:", round(x[3],2), "seconden."), paste("De output is opgeslagen in:",
-                             "S:\\Insights\\5 - Business & Data Solutions\\10. Starcom Tableau Server DB\\Uren Dashboard")))
+                             "padnaarbestand")))
                     
       
     return(info)
