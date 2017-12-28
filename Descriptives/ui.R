@@ -1,11 +1,3 @@
-library(shiny)
-library(shinythemes)
-library(data.table)
-library(magrittr)
-library(shinycssloaders)
-library(shinydashboard)
-# library(plotly)
-
 shinyUI(
   dashboardPage(
     dashboardHeader(title = "Shiny Descriptives"),
@@ -21,23 +13,22 @@ shinyUI(
         tabItem(tabName = "input_data",
                 fluidRow(
                   box(
-                    actionButton("knop_df", width = "100%", label = strong("Input dataset")),
+                    fileInput("knop_input", multiple = FALSE, label = NULL),
                     uiOutput('reset'),
-                    height = '200px', width = 3, status = 'primary'),
+                    height = '250px', width = 3, status = 'primary'),
                   box(
-                    p(strong("TODO:")), 
-                    p("- lijnen tussen variabelen aanbrengen in rasterplot"),
-                    p("- plotly rasterplot maken"),
-                    p("- iconen aanpassen"),
-                    p("- meer plots"), 
+                    p(strong("TODO:")),
+                    p("- plot dynamisch groter maken op basis van ncol"),
+                    p("- shiny dwingen direct plots te renderen na uploaden data zodra asynchrone taken mogelijk zijn"),
+                    p("- een echte file input knop gebruiken gezien pad niet belangrijk is"),
                     status = 'primary'),
                   box(
                     checkboxInput('interactief', label = strong('Interactieve plots')), 
                     width = 3, status = 'primary')
                 ),
                 fluidRow(
-                  infoBoxOutput('rijen'),
-                  infoBoxOutput('kolommen'),
+                  valueBoxOutput('rijen'),
+                  valueBoxOutput('kolommen'),
                   infoBoxOutput('bestandsnaam')),
                 fluidRow(
                   tags$head(tags$style("#contents1 {white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}")),
@@ -47,20 +38,22 @@ shinyUI(
         ),
         tabItem(tabName = "output_texts",
                 fluidRow(
-                  box(title = "Descriptives", collapsible = TRUE, status = 'primary',
+                  box(title = "Descriptives", collapsible = TRUE, status = 'primary', solidHeader = TRUE,
                       DT::dataTableOutput('contentsx') %>% withSpinner(type = 8, size = 0.5), width = 12)
                 ),
                 fluidRow(
-                  box(title = "Numeric variables", collapsible = TRUE, status = 'primary',
+                  box(title = "Numeric variables", collapsible = TRUE, status = 'primary', solidHeader = TRUE,
                       DT::dataTableOutput('contents_numeric') %>% withSpinner(type = 8, size = 0.5), width = 12))
         ),
         tabItem(tabName = "output_plots",
                 fluidRow(
                   tags$head(tags$style(".shiny-plot-output{height:60vh !important;}")),  # css om de box en de plot langer te maken
-                  box(title = "Missing values by row/column",  collapsible = TRUE, status = 'primary',
+                  box(title = "Missing values by row/column",  collapsible = TRUE, status = 'primary', solidHeader = TRUE,
                       plotOutput('raster') %>% withSpinner(type = 8, size = 0.5), width = 12),
-                  box(title = "Variable distributions", collapsible = TRUE, status = 'primary',
-                      plotOutput('distribution') %>% withSpinner(type = 8, size = 0.5), width = 12)
+                  box(title = "Variable distributions", collapsible = TRUE, status = 'primary', solidHeader = TRUE,
+                      plotOutput('distribution') %>% withSpinner(type = 8, size = 0.5), width = 12),
+                  box(title = "Correlation matrix", collapsible = TRUE, status = 'primary', solidHeader = TRUE,
+                      plotOutput('correlation') %>% withSpinner(type = 8, size = 0.5), width = 12)
                 )
         )
       )
