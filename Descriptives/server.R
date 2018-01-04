@@ -1,5 +1,4 @@
 shinyServer(function(input, output, session) {
-  source("./global.R")
   ########################################### Install missing packages #######################################
   # instelling om grotere bestanden in te kunnen lezen
   options(shiny.maxRequestSize = 50 * 1024^2)
@@ -8,11 +7,12 @@ shinyServer(function(input, output, session) {
   # checken of alle benodigde packages geïnstalleerd zijn
   lijst_packages <- c("dplyr", "data.table", "devtools", "ggplot2", "gridExtra", "lubridate", "openxlsx", "plyr", "Rcpp", "readxl",
                       "Rserve", "tidyr", "XLConnect", "xlsx", "plotly", "Metrics", "magrittr", "reshape2", "psych", "cellranger",
-                      "DT", "shinycssloaders")
+                      "DT", "shinycssloaders", "shinythemes", "shinyjs", "shinydashboard")
   nieuw_packages <- lijst_packages[!(lijst_packages %in% installed.packages()[,"Package"])]
   if(length(nieuw_packages)) install.packages(pkgs = nieuw_packages, repos = "https://lib.ugent.be/CRAN")
-  
+  source("./global.R")
   ########################################### Input ##########################################################
+
 
   ## inlezen data
   script <- reactive({
@@ -46,32 +46,39 @@ shinyServer(function(input, output, session) {
     return(list(datatable, bestandsnaam, colnumber, rownumber))
   })
   
-  output$contents1 <- DT::renderDataTable(script()[[1]][1:25],
-                                          options = list(pageLength = 25, scrollX = TRUE, searching = FALSE,lengthChange = FALSE))
+  output$contents1 <- DT::renderDataTable(DT::datatable(script()[[1]][1:25], selection = 'none',
+                                          options = list(pageLength = 25, scrollX = TRUE, searching = FALSE, lengthChange = FALSE)
+                                                         ))
 
   ## dynamische infoboxen
-  output$rijen <- renderInfoBox({
+  output$rijen <- shinydashboard::renderInfoBox({
     req(script())
-    infoBox("", subtitle = "Rows", value = prettyNum(script()[[4]], big.mark = ".", decimal.mark = ","), color = 'blue', 
+    shinydashboard::infoBox("", subtitle = "Rows", value = prettyNum(script()[[4]], big.mark = ".", decimal.mark = ","), color = 'blue', 
             icon = icon('arrows-v'))
   })
   
-  output$kolommen <- renderInfoBox({
+  output$kolommen <- shinydashboard::renderInfoBox({
     req(script())
-    infoBox("", subtitle = "Columns", value = script()[[3]], color = 'blue', icon = icon('arrows-h'))
+    shinydashboard::infoBox("", subtitle = "Columns", value = script()[[3]], color = 'blue', icon = icon('arrows-h'))
   })
   
-  output$bestandsnaam <- renderInfoBox({
+  output$bestandsnaam <- shinydashboard::renderInfoBox({
     req(script())
-    infoBox(title = "", value = script()[[2]], color = 'blue', icon = icon('file'))
+    shinydashboard::infoBox(title = "", value = script()[[2]], color = 'blue', icon = icon('file'))
   })
   
   ## Input resetten als je een nieuwe dataset invoert
+  # skip row en select sheet apart zodat skip row op 0 springt wanneer knop_input verandert maar ook als select sheet verandert
   output$reset <- renderUI({
     reset <- input$knop_input
-    list(numericInput("skip_row", label = "Skip row", value = 0, min = 0),
-         numericInput("select_sheet", label = "Select sheet", value = 1, min = 1))
+    reset2 <- input$select_sheet
+    list(numericInput("skip_row", label = "Skip row", value = 0, min = 0))
   })
+  output$reset2 <- renderUI({
+    reset <- input$knop_input
+    list(numericInput("select_sheet", label = "Select sheet", value = 1, min = 1))
+  })
+  
   ########################################### Text ###########################################################
   ## functions
   text_missings <- reactive({
@@ -85,38 +92,25 @@ shinyServer(function(input, output, session) {
   })
   
   ## outputs
-  output$contentsx <- renderDataTable({   
-    datatable(text_missings(), selection = "none",
+  output$contentsx <- DT::renderDataTable({   
+    DT::datatable(text_missings(), selection = "none",
               options = list(pageLength = 50, searching = FALSE, lengthChange = FALSE, autoWidth = TRUE, scrollX = TRUE)) %>%
-    formatPercentage(columns = c('Perc. Missing', 'Perc. Zero', 'Perc. Empty', 'Perc. Infinite'), digits = 1)
+      DT::formatPercentage(columns = c('Perc. Missing', 'Perc. Zero', 'Perc. Empty', 'Perc. Infinite'), digits = 1)
   })
   
-  output$contents_numeric <- renderDataTable({
-    datatable(text_numerics(), selection = "none",
+  output$contents_numeric <- DT::renderDataTable({
+    DT::datatable(text_numerics(), selection = "none",
               options = list(pageLength = 50, searching = FALSE, lengthChange = FALSE, autoWidth = FALSE, scrollX = FALSE)) %>%
-    formatRound(columns = c("Minimum", "First quartile", "Median", "Mean", "Third quartile", "Maximum"))
+      DT::formatRound(columns = c("Minimum", "First quartile", "Median", "Mean", "Third quartile", "Maximum"))
   })
   
   ########################################### Plots ##########################################################
-  plot_missings <- reactive({
-    p <- fun_plot_missings(copy(script()[[1]]))
-    return(p)
-  })
   
-  plot_distribution <- reactive({
-    p <- fun_plot_distributions(copy(script()[[1]]))
-    return(p)
-  })
+  output$raster <- renderPlot(fun_plot_missings(copy(script()[[1]] )))
+  output$distribution <- renderPlot(fun_plot_distributions(copy(script()[[1]] )))
   
-  plot_correlation <- reactive({
-    p <- fun_plot_correlation(copy(script()[[1]]))
-    return(p)
-  })
-  
-  output$raster <- renderPlot(plot_missings())
-  output$distribution <- renderPlot(plot_distribution())
-  output$correlation <- renderPlot(plot_correlation())
-  
+  output$correlation <- renderPlot(fun_plot_correlation(copy(script()[[1]] )))
+
   ########################################### Close session ##################################################
   session$onSessionEnded(function() {
     stopApp()
