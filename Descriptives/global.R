@@ -73,6 +73,13 @@ fun_plot_missings <- function(DT) {
   }
   vars <- copy(names(DT)) # if you don't use copy() id_xyz automagically get added to vars after that variable is created
   
+  # change empty cells to NA
+  indx <- which(sapply(DT, is.factor))
+  for (j in indx) set(DT, i = grep("^$|^ $", DT[[j]]), j = j, value = NA_integer_) 
+  
+  indx2 <- which(sapply(DT, is.character)) 
+  for (j in indx2) set(DT, i = grep("^$|^ $", DT[[j]]), j = j, value = NA_character_)
+  
   # convert cells to either the class() or NA
   DT[, (vars) := lapply(.SD, function(x) ifelse(!is.na(x), paste(class(x), collapse = '\\n'), NA))]
   DT[, id_xyz := .I]
@@ -106,8 +113,9 @@ fun_plot_missings <- function(DT) {
 }
 
 fun_plot_distributions <- function(DT) {
-  # select only numeric variables
+  # select only numeric variables and delete variables where all values are NA
   DT <- DT[, .SD, .SDcols = sapply(DT, is.numeric)]
+  DT[, which( colSums(is.na(DT)) == nrow(DT) ) := NULL]
   
   # if there are no numeric columns stop
   if (ncol(DT) == 0) {
@@ -129,8 +137,10 @@ fun_plot_distributions <- function(DT) {
 
 fun_plot_correlation <- function(DT) {
   DT <- DT[, .SD, .SDcols = sapply(DT, is.numeric)]
+  DT[, which( colSums(is.na(DT)) == nrow(DT) ) := NULL]
   
-  correlation <- cor(DT, use = "complete.obs")
+  correlation <- cor(DT, use = "na.or.complete")
+  correlation[is.na(correlation)] <- 0   # change correlation to 0 when there is only 1 distinct value
   correlation[lower.tri(correlation)] <- NA
   correlation <- melt(correlation, na.rm = T)
   
@@ -144,4 +154,18 @@ fun_plot_correlation <- function(DT) {
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, vjust = 1, size = 12, hjust = 1))
   
   return(p)
+}
+
+fun_plotly_correlation <- function(DT) {
+  DT <- DT[, .SD, .SDcols = sapply(DT, is.numeric)]
+  
+  correlation <- cor(DT, use = 'na.or.complete')
+  correlation[lower.tri(correlation)] <- NA
+  correlation <- round(correlation, 2)
+  
+  # hoverinfo text maken
+  hovertext <- matrix(correlation, nrow())
+  
+  plotly::plot_ly(x = colnames(correlation), y = rownames(correlation), z = correlation, type = 'heatmap', colorscale = "Greys") %>%
+    plotly::config(displayModeBar = FALSE)
 }
